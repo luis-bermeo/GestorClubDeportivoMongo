@@ -13,7 +13,7 @@ public class Socio {
     private String telefono;
     private String email;
 
-    public Socio() {} // Constructor vacío obligatorio [cite: 1061]
+    public Socio() {} // Constructor vacío obligatorio
 
     public Socio(String idSocio, String dni, String nombre, String apellidos, String telefono, String email) {
         this.idSocio = idSocio;

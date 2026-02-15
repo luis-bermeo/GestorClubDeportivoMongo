@@ -10,17 +10,25 @@ import modelo.Reserva;
 import modelo.Socio;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 
 public class ReservaFormView extends GridPane {
+
     public ReservaFormView(LogicaMongo logica, DashboardView dashboardView) {
+        // Configuración básica del panel
         setPadding(new Insets(12));
-        setHgap(8); setVgap(8);
+        setHgap(8);
+        setVgap(8);
 
+        // Componentes del formulario
         TextField id = new TextField();
-        ComboBox<Socio> idSocio = new ComboBox();
-        ComboBox<Pista> idPista = new ComboBox();
+        ComboBox<Socio> idSocio = new ComboBox<>();
+        ComboBox<Pista> idPista = new ComboBox<>();
+        DatePicker fecha = new DatePicker(LocalDate.now());
+        TextField hora = new TextField("10:00");
+        Spinner<Integer> duracion = new Spinner<>(30, 300, 60, 30);
+        Button crear = new Button("Realizar Reserva");
 
+        // Carga de datos iniciales
         try {
             idSocio.getItems().addAll(logica.getSocios());
             idSocio.setConverter(new StringConverter<Socio>() {
@@ -42,14 +50,10 @@ public class ReservaFormView extends GridPane {
                 public Pista fromString(String string) { return null; }
             });
         } catch (Exception e) {
-            showError("No se pudieron cargar los datos: " + e.getMessage());
+            showError("Error al cargar datos desde MongoDB: " + e.getMessage());
         }
 
-        DatePicker fecha = new DatePicker(LocalDate.now());
-        TextField hora = new TextField("10:00");
-        Spinner<Integer> duracion = new Spinner<>(30, 300, 60, 30);
-        Button crear = new Button("Reservar");
-
+        // Layout del formulario
         addRow(0, new Label("idReserva*"), id);
         addRow(1, new Label("Socio*"), idSocio);
         addRow(2, new Label("Pista*"), idPista);
@@ -58,37 +62,52 @@ public class ReservaFormView extends GridPane {
         addRow(5, new Label("Duración (min)"), duracion);
         add(crear, 1, 6);
 
+        // Acción del botón Crear
         crear.setOnAction(e -> {
             try {
-                if (idSocio.getValue() == null || idPista.getValue() == null) {
-                    showError("Debe seleccionar un socio y una pista.");
+                // Validaciones básicas de la vista
+                if (id.getText().isEmpty() || idSocio.getValue() == null || idPista.getValue() == null) {
+                    showError("Por favor, rellena todos los campos obligatorios.");
                     return;
                 }
-                LocalTime t = LocalTime.parse(hora.getText());
 
-                // En Mongo guardamos los IDs, no los objetos completos
-                Reserva r = new Reserva(id.getText(),
+                // Creamos el objeto Reserva pasando fechas y horas como String
+                Reserva nuevaReserva = new Reserva(
+                        id.getText(),
                         idSocio.getValue().getIdSocio(),
                         idPista.getValue().getIdPista(),
-                        fecha.getValue(), t, duracion.getValue(), 0);
+                        fecha.getValue().toString(), // LocalDate a String
+                        hora.getText(),              // Hora como String
+                        duracion.getValue(),
+                        0.0                          // El precio lo calcula LogicaMongo
+                );
 
-                logica.crearReserva(r);
-                showInfo("Reserva creada correctamente en MongoDB. Precio: " + r.getPrecio() + "€");
+                // Llamada a la lógica de persistencia
+                logica.crearReserva(nuevaReserva);
+
+                showInfo("Reserva guardada correctamente. ID: " + nuevaReserva.getIdReserva());
+
+                // Actualizamos la tabla principal
                 dashboardView.refreshData();
-            } catch (Exception ex) {
+
+            } catch (IllegalArgumentException ex) {
+                // Captura reglas de negocio (solapes, pista no disponible)
                 showError(ex.getMessage());
+            } catch (Exception ex) {
+                showError("Error inesperado: " + ex.getMessage());
             }
         });
     }
 
     private void showError(String msg) {
         Alert a = new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK);
-        a.setHeaderText("Error");
+        a.setHeaderText("Error de validación");
         a.showAndWait();
     }
+
     private void showInfo(String msg) {
         Alert a = new Alert(Alert.AlertType.INFORMATION, msg, ButtonType.OK);
-        a.setHeaderText(null);
+        a.setHeaderText("Operación exitosa");
         a.showAndWait();
     }
 }

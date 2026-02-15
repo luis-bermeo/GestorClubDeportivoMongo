@@ -15,6 +15,7 @@ import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,8 +30,8 @@ public class LogicaMongo {
     private MongoCollection<Pista> pistasCol;
     private MongoCollection<Reserva> reservasCol;
 
-    // Métod para crear conexión
     public LogicaMongo() {
+        // Configuración de CodecRegistry para POJOs
         CodecRegistry pojoCodecRegistry = fromProviders(PojoCodecProvider.builder().automatic(true).build());
         CodecRegistry codecRegistry = fromRegistries(MongoClientSettings.getDefaultCodecRegistry(), pojoCodecRegistry);
 
@@ -40,11 +41,8 @@ public class LogicaMongo {
                 .build();
 
         mongoClient = MongoClients.create(settings);
-
-        // Conexión y colecciones
         database = mongoClient.getDatabase("dama_sports");
 
-        // Obtener las colecciones tipadas (MongoCollection<POJO>)
         sociosCol = database.getCollection("socios", Socio.class);
         pistasCol = database.getCollection("pistas", Pista.class);
         reservasCol = database.getCollection("reservas", Reserva.class);
@@ -56,12 +54,10 @@ public class LogicaMongo {
 
     // ================= SOCIOS =================
 
-    // Obtener listado de socios
     public List<Socio> getSocios() {
         return sociosCol.find().into(new ArrayList<>());
     }
 
-    // Insertar socio
     public void altaSocio(Socio socio) {
         if (sociosCol.find(Filters.eq("_id", socio.getIdSocio())).first() != null) {
             throw new IllegalArgumentException("El socio ya existe");
@@ -69,12 +65,11 @@ public class LogicaMongo {
         sociosCol.insertOne(socio);
     }
 
-    // Eliminar socio (validando reglas)
-    // No permitir eliminar un socio si tiene reservas futuras
     public void bajaSocio(String idSocio) {
+        // Comparamos fecha como String ISO (YYYY-MM-DD) que es como está en el JSON
         long reservasFuturas = reservasCol.countDocuments(Filters.and(
                 Filters.eq("idSocio", idSocio),
-                Filters.gt("fecha", LocalDate.now())
+                Filters.gt("fecha", LocalDate.now().toString())
         ));
 
         if (reservasFuturas > 0) {
@@ -85,12 +80,10 @@ public class LogicaMongo {
 
     // ================= PISTAS =================
 
-    // Obtener listado de pistas
     public List<Pista> getPistas() {
         return pistasCol.find().into(new ArrayList<>());
     }
 
-    // Insertar pista
     public void altaPista(Pista pista) {
         if (pistasCol.find(Filters.eq("_id", pista.getIdPista())).first() != null) {
             throw new IllegalArgumentException("La pista ya existe");
@@ -98,8 +91,6 @@ public class LogicaMongo {
         pistasCol.insertOne(pista);
     }
 
-    // Modificar disponibilidad de pista
-    // Uso de Updates.set(...)
     public void cambiarDisponibilidadPista(String idPista, boolean disponible) {
         pistasCol.updateOne(Filters.eq("_id", idPista), Updates.set("disponible", disponible));
     }
@@ -110,54 +101,56 @@ public class LogicaMongo {
         return reservasCol.find().into(new ArrayList<>());
     }
 
-    // Obtener reservas de un socio (por id_socio)
-    // Uso de Filters.eq(...)
     public List<Reserva> getReservasPorSocio(String idSocio) {
         return reservasCol.find(Filters.eq("idSocio", idSocio)).into(new ArrayList<>());
     }
 
-    // Obtener reservas de una pista por fecha
-    public List<Reserva> getReservasPorPistaYFecha(String idPista, LocalDate fecha) {
+    // Cambiado el parámetro fecha a String para que coincida con el JSON de Mongo
+    public List<Reserva> getReservasPorPistaYFecha(String idPista, String fecha) {
         return reservasCol.find(Filters.and(
                 Filters.eq("idPista", idPista),
                 Filters.eq("fecha", fecha)
         )).into(new ArrayList<>());
     }
 
-    // Insertar reserva
     public void crearReserva(Reserva reserva) {
         // Validar Socio
         if (sociosCol.find(Filters.eq("_id", reserva.getIdSocio())).first() == null) {
             throw new IllegalArgumentException("El socio no existe");
         }
 
-        // No permitir reservas sobre pistas no disponibles
+        // Validar Pista operativa
         Pista pista = pistasCol.find(Filters.eq("_id", reserva.getIdPista())).first();
         if (pista == null || !pista.isDisponible()) {
-            throw new IllegalArgumentException("La pista no existe o no está disponible");
+            throw new IllegalArgumentException("La pista no existe o no está operativa");
         }
 
-        // Evitar solapamientos (misma pista, fecha y tramo)
+        // Lógica de Solapamientos
         List<Reserva> reservasDia = getReservasPorPistaYFecha(reserva.getIdPista(), reserva.getFecha());
 
+        // Convertimos el String de la nueva reserva a LocalTime para operar
+        LocalTime inicioNueva = LocalTime.parse(reserva.getHoraInicio());
+        LocalTime finNueva = inicioNueva.plusMinutes(reserva.getDuracionMin());
+
         for (Reserva r : reservasDia) {
-            if (reserva.getHoraInicio().isBefore(r.getHoraInicio().plusMinutes(r.getDuracionMin())) &&
-                    r.getHoraInicio().isBefore(reserva.getHoraInicio().plusMinutes(reserva.getDuracionMin()))) {
-                throw new IllegalArgumentException("La pista ya está reservada en ese horario");
+            LocalTime inicioExistente = LocalTime.parse(r.getHoraInicio());
+            LocalTime finExistente = inicioExistente.plusMinutes(r.getDuracionMin());
+
+            if (inicioNueva.isBefore(finExistente) && inicioExistente.isBefore(finNueva)) {
+                throw new IllegalArgumentException("Solapamiento: La pista ya está ocupada en ese horario.");
             }
         }
 
-        // Calcular precio simple
-        double precio = 10.0 * (reserva.getDuracionMin() / 60.0);
-        reserva.setPrecio(precio);
+        // Precio: 10€ la hora (0.166€ el minuto aprox)
+        double precio = (reserva.getDuracionMin() / 60.0) * 10.0;
+        reserva.setPrecio(Math.round(precio * 100.0) / 100.0); // Redondeo a 2 decimales
 
         reservasCol.insertOne(reserva);
     }
 
-    // Modificar cantidad/duración/precio o datos de una reserva
     public void modificarDuracionReserva(String idReserva, int nuevaDuracionMin) {
-        // Recalculamos precio al cambiar duración
-        double nuevoPrecio = 10.0 * (nuevaDuracionMin / 60.0);
+        double nuevoPrecio = (nuevaDuracionMin / 60.0) * 10.0;
+        nuevoPrecio = Math.round(nuevoPrecio * 100.0) / 100.0;
 
         reservasCol.updateOne(
                 Filters.eq("_id", idReserva),

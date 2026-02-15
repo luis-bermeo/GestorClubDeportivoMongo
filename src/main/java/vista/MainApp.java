@@ -31,7 +31,7 @@ public class MainApp extends Application {
 
         root = new BorderPane();
         root.setTop(buildMenuBar());
-        status = new Label("Listo");
+        status = new Label("");
         status.setPadding(new Insets(4));
         root.setBottom(status);
 

@@ -9,7 +9,8 @@ import modelo.Pista;
 public class PistaFormView extends GridPane {
     public PistaFormView(LogicaMongo logica, DashboardView dashboardView) {
         setPadding(new Insets(12));
-        setHgap(8); setVgap(8);
+        setHgap(8);
+        setVgap(8);
 
         TextField id = new TextField();
         TextField deporte = new TextField();

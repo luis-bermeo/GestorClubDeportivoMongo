@@ -68,7 +68,7 @@ public class LogicaMongo {
     public void bajaSocio(String idSocio) {
         // Comparamos fecha como String ISO (YYYY-MM-DD) que es como está en el JSON
         long reservasFuturas = reservasCol.countDocuments(Filters.and(
-                Filters.eq("idSocio", idSocio),
+                Filters.eq("id_socio", idSocio),
                 Filters.gt("fecha", LocalDate.now().toString())
         ));
 
@@ -102,13 +102,13 @@ public class LogicaMongo {
     }
 
     public List<Reserva> getReservasPorSocio(String idSocio) {
-        return reservasCol.find(Filters.eq("idSocio", idSocio)).into(new ArrayList<>());
+        return reservasCol.find(Filters.eq("id_socio", idSocio)).into(new ArrayList<>());
     }
 
     // Cambiado el parámetro fecha a String para que coincida con el JSON de Mongo
     public List<Reserva> getReservasPorPistaYFecha(String idPista, String fecha) {
         return reservasCol.find(Filters.and(
-                Filters.eq("idPista", idPista),
+                Filters.eq("id_pista", idPista),
                 Filters.eq("fecha", fecha)
         )).into(new ArrayList<>());
     }
@@ -129,11 +129,11 @@ public class LogicaMongo {
         List<Reserva> reservasDia = getReservasPorPistaYFecha(reserva.getIdPista(), reserva.getFecha());
 
         // Convertimos el String de la nueva reserva a LocalTime para operar
-        LocalTime inicioNueva = LocalTime.parse(reserva.getHoraInicio());
+        LocalTime inicioNueva = LocalTime.parse(reserva.getHora_inicio());
         LocalTime finNueva = inicioNueva.plusMinutes(reserva.getDuracionMin());
 
         for (Reserva r : reservasDia) {
-            LocalTime inicioExistente = LocalTime.parse(r.getHoraInicio());
+            LocalTime inicioExistente = LocalTime.parse(r.getHora_inicio());
             LocalTime finExistente = inicioExistente.plusMinutes(r.getDuracionMin());
 
             if (inicioNueva.isBefore(finExistente) && inicioExistente.isBefore(finNueva)) {
@@ -155,7 +155,7 @@ public class LogicaMongo {
         reservasCol.updateOne(
                 Filters.eq("_id", idReserva),
                 Updates.combine(
-                        Updates.set("duracionMin", nuevaDuracionMin),
+                        Updates.set("duracion_min", nuevaDuracionMin),
                         Updates.set("precio", nuevoPrecio)
                 )
         );

@@ -10,9 +10,10 @@ import modelo.Pista;
 public class CambiarDisponibilidadView extends GridPane {
     public CambiarDisponibilidadView(LogicaMongo logica, DashboardView dashboardView) {
         setPadding(new Insets(12));
-        setHgap(8); setVgap(8);
+        setHgap(8);
+        setVgap(8);
 
-        ComboBox<Pista> id = new ComboBox();
+        ComboBox<Pista> id = new ComboBox<>();
         try {
             id.getItems().addAll(logica.getPistas());
             id.setConverter(new StringConverter<Pista>() {
@@ -35,7 +36,7 @@ public class CambiarDisponibilidadView extends GridPane {
 
         id.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
             if (newValue != null) {
-                disponible.setSelected(((Pista)newValue).isDisponible());
+                disponible.setSelected(newValue.isDisponible());
             }
         });
 
@@ -44,7 +45,7 @@ public class CambiarDisponibilidadView extends GridPane {
         add(cambiar, 1, 2);
 
         cambiar.setOnAction(e -> {
-            Pista pistaSeleccionada = (Pista) id.getSelectionModel().getSelectedItem();
+            Pista pistaSeleccionada = id.getValue();
             if (pistaSeleccionada != null) {
                 try {
                     logica.cambiarDisponibilidadPista(pistaSeleccionada.getIdPista(), disponible.isSelected());

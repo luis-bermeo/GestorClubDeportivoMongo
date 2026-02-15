@@ -55,9 +55,9 @@ public class DashboardView extends BorderPane {
         TableColumn<Reserva, String> r3 = new TableColumn<>("Pista");
         r3.setCellValueFactory(p -> new javafx.beans.property.SimpleStringProperty(p.getValue().getIdPista()));
         TableColumn<Reserva, String> r4 = new TableColumn<>("Fecha");
-        r4.setCellValueFactory(p -> new javafx.beans.property.SimpleStringProperty(p.getValue().getFecha().toString()));
+        r4.setCellValueFactory(p -> new javafx.beans.property.SimpleStringProperty(p.getValue().getFecha()));
         TableColumn<Reserva, String> r5 = new TableColumn<>("Inicio");
-        r5.setCellValueFactory(p -> new javafx.beans.property.SimpleStringProperty(p.getValue().getHoraInicio().toString()));
+        r5.setCellValueFactory(p -> new javafx.beans.property.SimpleStringProperty(p.getValue().getHora_inicio()));
         TableColumn<Reserva, String> r6 = new TableColumn<>("Min");
         r6.setCellValueFactory(p -> new javafx.beans.property.SimpleStringProperty(String.valueOf(p.getValue().getDuracionMin())));
         TableColumn<Reserva, String> r7 = new TableColumn<>("Precio (€)");

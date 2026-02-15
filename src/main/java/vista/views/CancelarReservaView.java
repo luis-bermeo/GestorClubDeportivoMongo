@@ -10,9 +10,10 @@ import modelo.Reserva;
 public class CancelarReservaView extends GridPane {
     public CancelarReservaView(LogicaMongo logica, DashboardView dashboardView) {
         setPadding(new Insets(12));
-        setHgap(8); setVgap(8);
+        setHgap(8);
+        setVgap(8);
 
-        ComboBox<Reserva> id = new ComboBox();
+        ComboBox<Reserva> id = new ComboBox<>();
         try {
             id.getItems().addAll(logica.getReservas());
             id.setConverter(new StringConverter<Reserva>() {
@@ -36,7 +37,7 @@ public class CancelarReservaView extends GridPane {
         add(cancelar, 1, 1);
 
         cancelar.setOnAction(e -> {
-            Reserva reservaSeleccionada = id.getSelectionModel().getSelectedItem();
+            Reserva reservaSeleccionada = id.getValue();
             if (reservaSeleccionada != null) {
                 try {
                     logica.cancelarReserva(reservaSeleccionada.getIdReserva());

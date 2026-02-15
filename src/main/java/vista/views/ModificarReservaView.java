@@ -11,7 +11,8 @@ public class ModificarReservaView extends GridPane {
 
     public ModificarReservaView(LogicaMongo logica, DashboardView dashboardView) {
         setPadding(new Insets(12));
-        setHgap(8); setVgap(8);
+        setHgap(8);
+        setVgap(8);
 
         // 1. Selector de Reserva
         ComboBox<Reserva> comboReservas = new ComboBox<>();
@@ -29,7 +30,7 @@ public class ModificarReservaView extends GridPane {
 
         // Lógica del botón
         btnModificar.setOnAction(e -> {
-            Reserva reservaSeleccionada = comboReservas.getSelectionModel().getSelectedItem();
+            Reserva reservaSeleccionada = comboReservas.getValue();
             if (reservaSeleccionada != null) {
                 try {
                     int nuevaDuracion = spinnerDuracion.getValue();

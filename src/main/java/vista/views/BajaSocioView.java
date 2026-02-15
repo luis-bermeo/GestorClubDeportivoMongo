@@ -10,7 +10,8 @@ import modelo.Socio;
 public class BajaSocioView extends GridPane {
     public BajaSocioView(LogicaMongo logica, DashboardView dashboardView) {
         setPadding(new Insets(12));
-        setHgap(8); setVgap(8);
+        setHgap(8);
+        setVgap(8);
 
         ComboBox<Socio> id = new ComboBox<>();
         try {
@@ -36,7 +37,7 @@ public class BajaSocioView extends GridPane {
         add(baja, 1, 1);
 
         baja.setOnAction(e -> {
-            Socio socioSeleccionado = id.getSelectionModel().getSelectedItem();
+            Socio socioSeleccionado = id.getValue();
             if (socioSeleccionado != null) {
                 try {
                     logica.bajaSocio(socioSeleccionado.getIdSocio());
